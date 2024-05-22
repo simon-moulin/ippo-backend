@@ -1,0 +1,33 @@
+stages:
+  - build
+  - migrate-db
+  - deploy
+
+build:
+  before_script:
+    - 'docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY'
+  image: 'docker:latest'
+  script:
+    - 'docker image build --tag registry.gitlab.com/ippo1/ippo-backend/ippo-backend:latest --tag registry.gitlab.com/ippo1/ippo-backend/ippo-backend:$CI_COMMIT_SHA .'
+    - 'docker push registry.gitlab.com/ippo1/ippo-backend/ippo-backend:latest'
+    - 'docker push registry.gitlab.com/ippo1/ippo-backend/ippo-backend:$CI_COMMIT_SHA'
+  services:
+    - 'docker:dind'
+  stage: build
+
+migrate-db:
+  image: 'node:20-alpine'
+  script:
+    - 'npm run db-migrate:prd'
+  stage: migrate-db
+  when: manual
+
+deploy:
+  image: kroniak/ssh-client
+  stage: deploy
+  script:
+    - chmod 400 $MASTER_SSH
+    # Login to Gitlab Container registry
+    - ssh -o StrictHostKeyChecking=no -i $MASTER_SSH "${MASTER_USER}@${MASTER_HOST}" "sudo docker login -u ${CI_DEPLOY_USER} -p ${CI_DEPLOY_PASSWORD} ${CI_REGISTRY}"
+    - ssh -o StrictHostKeyChecking=no -i $MASTER_SSH "${MASTER_USER}@${MASTER_HOST}" "sudo docker compose -f ~/traefik-docker-config/services/docker-compose-ippo-backend.yml pull && sudo docker compose -f ~/traefik-docker-config/services/docker-compose-ippo-backend.yml up -d"
+  when: manual

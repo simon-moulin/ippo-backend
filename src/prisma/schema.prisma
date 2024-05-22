@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  username  String
+  email     String    @unique
+  password  String
+  imageUrl  String?
+  stripeId  String?   @unique
+  premium   Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  followers Follows[] @relation("following")
+  following Follows[] @relation("follower")
+  Like      Like[]
+  Habit     Habit[]
+}
+
+model Category {
+  id    Int     @id @default(autoincrement())
+  name  String  @unique
+  icon  String?
+  Habit Habit[]
+}
+
+model Habit {
+  id           Int          @id @default(autoincrement())
+  user         User         @relation(fields: [userId], references: [id])
+  visibility   Boolean      @default(false)
+  category     Category     @relation(fields: [categoryId], references: [id])
+  name         String
+  categoryId   Int
+  validations  Validation[]
+  frequency    Frequency
+  occurency    Int
+  specificDays String[]
+  userId       Int
+  deleted      Boolean      @default(false)
+}
+
+model Follows {
+  follower    User      @relation("follower", fields: [followerId], references: [id])
+  followerId  Int
+  following   User      @relation("following", fields: [followingId], references: [id])
+  followingId Int
+  subscribe   DateTime?
+
+  @@id(name: "followId", [followerId, followingId])
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+model Validation {
+  id          Int      @id @default(autoincrement())
+  validatedAt DateTime @default(now())
+  difficulty  Int?
+  message     String?
+  counter     Int      @default(1)
+  likedBy     Like[]
+  Habit       Habit?   @relation(fields: [habitId], references: [id])
+  habitId     Int
+  isValid     Boolean  @default(false)
+}
+
+model Like {
+  id           Int        @id @default(autoincrement())
+  user         User       @relation(fields: [userId], references: [id])
+  Validation   Validation @relation(fields: [validationId], references: [id])
+  validationId Int
+  userId       Int
+  likedAt      DateTime   @default(now())
+
+  @@unique(name: "LikeValidationIdUserIdUnique", [validationId, userId])
+}
