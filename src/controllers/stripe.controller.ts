@@ -1,4 +1,5 @@
 import { AccountService } from '@/services/account.service'
+import { getLogger } from '@/services/logger.service'
 import { MailService } from '@/services/mail.service'
 import { Response, NextFunction, Request } from 'express'
 import Stripe from 'stripe'
@@ -13,6 +14,8 @@ const endpointSecret =
 export class StripeController {
   public accountService = Container.get(AccountService)
 
+  public logger = getLogger()
+
   public mailService = Container.get(MailService)
 
   public webhook = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -24,12 +27,11 @@ export class StripeController {
       try {
         event = stripeClient.webhooks.constructEvent(req.body, sig, endpointSecret)
       } catch (err) {
-        console.log(err)
+        this.logger.error(JSON.stringify(err))
         res.status(400).send(`Webhook Error: ${(err as Error).message}`)
         return
       }
       // Handle the event
-      console.log(event.type)
 
       if (event.type == 'customer.subscription.deleted') {
         this.accountService.setSubscription(event.data.object.customer as string, false)
@@ -46,6 +48,7 @@ export class StripeController {
       // Return a 200 response to acknowledge receipt of the event
       res.send()
     } catch (error) {
+      this.logger.error(JSON.stringify(error))
       next(error)
     }
   }

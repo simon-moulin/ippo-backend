@@ -2,10 +2,12 @@ import { Service } from 'typedi'
 import nodemailer from 'nodemailer'
 import pug from 'pug'
 import { User } from '@prisma/client'
+import { getLogger } from './logger.service'
 
 @Service()
 export class MailService {
   private transporter: nodemailer.Transporter
+  private logger = getLogger()
   constructor() {
     this.createConnection()
   }
@@ -36,9 +38,9 @@ export class MailService {
       },
       (error, info) => {
         if (error) {
-          console.error(error)
+          this.logger.error(error)
         } else {
-          console.info('Email sent: ' + info.response)
+          this.logger.info('Email sent: ' + info.response)
         }
       }
     )
@@ -57,9 +59,9 @@ export class MailService {
       },
       (error, info) => {
         if (error) {
-          console.error(error)
+          this.logger.error(error)
         } else {
-          console.info('Email sent: ' + info.response)
+          this.logger.info('Email sent: ' + info.response)
         }
       }
     )

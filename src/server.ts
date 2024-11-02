@@ -11,8 +11,6 @@ import { StripeRoute } from './routes/stripe.route'
 
 dotenv.config({ path: '.env.dev' })
 
-console.log(process.env.DATABASE_URL)
-
 const app = new App([
   new AuthRoute(),
   new HabitRoute(),
