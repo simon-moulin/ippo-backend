@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express'
 import { HttpException } from '../exceptions/http.exception'
 import { Prisma } from '@prisma/client'
-import { getLogger } from '@/services/logger.service'
+import { getLogger } from '@/utils/logger.service'
 
 export const ErrorMiddleware = (error: HttpException, req: Request, res: Response, next: NextFunction) => {
   try {

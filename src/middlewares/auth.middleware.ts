@@ -4,8 +4,7 @@ import { SECRET_KEY } from '../services/auth.service'
 import { DataStoredInToken, RequestWithUser } from '../interfaces/auth.interface'
 import { HttpException } from '../exceptions/http.exception'
 import { prismaClient } from '@/prisma/prisma'
-import type { User } from '@prisma/client'
-import { getRedisClient } from '@/services/redis.service'
+import { getRedisClient } from '@/utils/redis.service'
 
 export const AuthMiddleware = async (req: RequestWithUser, res: Response, next: NextFunction) => {
   try {
@@ -16,21 +15,17 @@ export const AuthMiddleware = async (req: RequestWithUser, res: Response, next: 
 
     if (authorization) {
       const { id } = (await verify(authorization, SECRET_KEY)) as DataStoredInToken
+      const cachedUser = await redisClient.get(`user:${id}`)
+      if (cachedUser) {
+        req.user = JSON.parse(cachedUser)
+        return next()
+      }
       const users = prismaClient.user
 
-      let findUser: User | null = null
-
-      const findUserRedis = await redisClient.get('USER_' + id)
-
-      if (!findUserRedis) {
-        findUser = await users.findUnique({ where: { id: Number(id) } })
-        redisClient.setEx('USER_' + id, 30, JSON.stringify(findUser))
-      } else {
-        findUser = JSON.parse(findUserRedis)
-      }
-
+      const findUser = await users.findUnique({ where: { id: Number(id) } })
       if (findUser) {
         findUser.password = ''
+        redisClient.setEx(`user:${id}`, 60, JSON.stringify(findUser))
         req.user = findUser
         next()
       } else {

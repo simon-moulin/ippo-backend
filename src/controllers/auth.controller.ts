@@ -25,6 +25,7 @@ export class AuthController {
   public logIn = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const loginInfos: LoginDto = req.body
+
       const user = await this.auth.login(loginInfos)
       const userIp = req.socket.remoteAddress
       this.mailService.sendLoginEmail(user, userIp!)

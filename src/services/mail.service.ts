@@ -2,7 +2,7 @@ import { Service } from 'typedi'
 import nodemailer from 'nodemailer'
 import pug from 'pug'
 import { User } from '@prisma/client'
-import { getLogger } from './logger.service'
+import { getLogger } from '../utils/logger.service'
 
 @Service()
 export class MailService {

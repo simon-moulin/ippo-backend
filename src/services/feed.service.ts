@@ -2,10 +2,13 @@ import Container, { Service } from 'typedi'
 import { FollowService } from './follow.service'
 import { AccountService } from './account.service'
 import { prismaClient } from '@/prisma/prisma'
+import { getRedisClient } from '@/utils/redis.service'
+import { getLogger } from '@/utils/logger.service'
 
 @Service()
 export class FeedService {
   public follows = prismaClient.follows
+  public logger = getLogger()
   public habits = prismaClient.habit
   public validations = prismaClient.validation
   public likes = prismaClient.like
@@ -14,7 +17,12 @@ export class FeedService {
   public followService = Container.get(FollowService)
 
   public async getFeed(userId: number) {
-    // Fetch all validations from the user's friends
+    const cachedFeed = await getRedisClient().get(`user_feed:${userId}`)
+
+    if (cachedFeed) {
+      return JSON.parse(cachedFeed)
+    }
+
     const following = await this.followService.getFollowings(userId)
     const followingValidation = await this.validations.findMany({
       orderBy: {
@@ -53,6 +61,8 @@ export class FeedService {
         },
       },
     })
+
+    getRedisClient().setEx(`user_feed:${userId}`, 60, JSON.stringify(followingValidation))
     return followingValidation
   }
 }

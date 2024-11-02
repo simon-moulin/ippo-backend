@@ -64,7 +64,6 @@ export class AuthService {
     if (!user) {
       throw new HttpException(401, 'Invalid credentials')
     }
-
     const validPassword = await compare(userLogin.password, user.password)
 
     if (!validPassword) {
